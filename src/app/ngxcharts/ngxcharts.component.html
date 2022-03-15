@@ -1,0 +1,36 @@
+<p>ngxchart works!</p>
+<ngx-charts-pie-chart 
+    [results]="pieChart"
+    [legend]="false"
+    [legendTitle]="'Product Sale Report'" 
+    [view]="[1000,300]"
+    [labels]="true" >
+</ngx-charts-pie-chart>
+
+<ngx-charts-line-chart 
+    [results]="lineChart" 
+    [view]="[700, 370]" 
+    [legend]="false" 
+    [showXAxisLabel]="true" 
+    [showYAxisLabel]="true" 
+    [xAxis]="true" 
+    [yAxis]="true" 
+    [xAxisLabel]="'Sales'" 
+    [yAxisLabel]="'Products'"
+    [timeline]="true">
+</ngx-charts-line-chart>
+
+<ngx-charts-bar-vertical-stacked
+  [view]="[700,370]"
+  [results]="barChart"
+  [gradient]="false"
+  [xAxis]="true"
+  [yAxis]="true"
+  [legend]="true"
+  [showXAxisLabel]="true"
+  [showYAxisLabel]="true"
+  [xAxisLabel]="'Country'"
+  [yAxisLabel]="'Population'"
+  [animations]="true">
+</ngx-charts-bar-vertical-stacked>
+

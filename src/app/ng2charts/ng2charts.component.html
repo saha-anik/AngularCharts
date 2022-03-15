@@ -1,0 +1,11 @@
+<p>ng2charts works!</p>
+<mat-grid-list cols="2" rowHeight="2:1">
+    <mat-grid-tile [colspan]="2">
+              <div style="display: block;">
+        <canvas baseChart width="400" height="400"
+                        [data]="lineChartData"
+                        [options]="lineChartOptions"
+                        [type]="lineChartType"></canvas>
+                </div>
+    </mat-grid-tile>
+  </mat-grid-list>
