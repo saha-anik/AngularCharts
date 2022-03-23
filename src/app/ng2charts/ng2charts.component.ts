@@ -48,6 +48,7 @@ export class Ng2chartsComponent implements OnInit {
   };
 
   public lineChartOptions: ChartConfiguration['options'] = {
+    responsive: true,
     elements: {
       line: {
         tension: 0.5
@@ -73,6 +74,25 @@ export class Ng2chartsComponent implements OnInit {
   };
 
   public lineChartType: ChartType = 'line';
+
+  public pieChartData: ChartConfiguration['data'] = {
+    labels: [ [ 'Download', 'Sales' ], [ 'In', 'Store', 'Sales' ], 'Mail Sales' ],
+    datasets: [ {
+      data: [ 300, 500, 100 ]
+    } ]
+  };
+
+  public pieChartOptions: ChartConfiguration['options'] = {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+      }
+    }
+  };
+  public pieChartType: ChartType = 'pie';
+
 
   constructor() { }
 

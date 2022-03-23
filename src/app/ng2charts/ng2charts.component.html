@@ -8,4 +8,12 @@
                         [type]="lineChartType"></canvas>
                 </div>
     </mat-grid-tile>
+    <mat-grid-tile [colspan]="2">
+      <div style="display: block;">
+<canvas baseChart width="400" height="400"
+                [data]="pieChartData"
+                [options]="pieChartOptions"
+                [type]="pieChartType"></canvas>
+        </div>
+</mat-grid-tile>
   </mat-grid-list>
