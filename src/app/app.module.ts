@@ -13,17 +13,20 @@ import { NgChartsModule }from 'ng2-charts';
 //components import
 import { NgxchartsComponent } from './ngxcharts/ngxcharts.component';
 import { Ng2chartsComponent } from './ng2charts/ng2charts.component';
+import { NgxchartsCustomComponent } from './ngxcharts-custom/ngxcharts-custom.component';
 
 const routes: Routes = [
   { path: "ngxchart", component: NgxchartsComponent},
-  { path: "ng2chart", component: Ng2chartsComponent}
+  { path: "ng2chart", component: Ng2chartsComponent},
+  { path: "ngxcustomchart", component: NgxchartsCustomComponent}
 ]
 
 @NgModule({
   declarations: [
     AppComponent,
     NgxchartsComponent,
-    Ng2chartsComponent
+    Ng2chartsComponent,
+    NgxchartsCustomComponent
   ],
   imports: [
     BrowserModule,
