@@ -1,28 +1,26 @@
-/*import { Component, OnInit } from '@angular/core';
-
-@Component({
-  selector: 'app-ngxcharts-custom',
-  templateUrl: './ngxcharts-custom.component.html',
-  styleUrls: ['./ngxcharts-custom.component.css']
-})
-export class NgxchartsCustomComponent implements OnInit {
-
-  constructor() { }
-
-  ngOnInit(): void {
-  }
-
-}
-*/
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, ViewEncapsulation } from '@angular/core';
-import { scaleBand, scaleLinear, scaleTime } from 'd3-scale';
-import { brushX } from 'd3-brush';
-import { select } from 'd3-selection';
 import {
-  BaseChartComponent,
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  ViewEncapsulation,
+  ChangeDetectionStrategy,
+  ContentChild,
+  TemplateRef,
+  TrackByFunction
+} from '@angular/core';
+import { isPlatformServer } from '@angular/common';
+import { trigger, style, animate, transition } from '@angular/animations';
+import { scaleBand, scaleLinear } from 'd3-scale';
+
+import {
   calculateViewDimensions,
   ColorHelper,
-  id,
+  Series,
+  BaseChartComponent,
+  BarChartType,
+  LegendOptions,
+  LegendPosition,
   ScaleType,
   ViewDimensions
 } from '@swimlane/ngx-charts'
@@ -33,18 +31,28 @@ import {
   template: `
     <ngx-charts-chart
       [view]="[width, height]"
-      [showLegend]="false"
+      [showLegend]="legend"
+      [legendOptions]="legendOptions"
+      [activeEntries]="activeEntries"
       [animations]="animations"
-      class="timeline-filter-bar-chart"
+      (legendLabelActivate)="onActivate($event, undefined, true)"
+      (legendLabelDeactivate)="onDeactivate($event, undefined, true)"
+      (legendLabelClick)="onClick($event)"
     >
-      <svg:g [attr.transform]="transform" class="chart">
+      <svg:g [attr.transform]="transform" class="bar-chart chart">
         <svg:g
           ngx-charts-x-axis
           *ngIf="xAxis"
-          [xScale]="timeScale"
+          [xScale]="xScale"
           [dims]="dims"
           [showLabel]="showXAxisLabel"
           [labelText]="xAxisLabel"
+          [trimTicks]="trimXAxisTicks"
+          [rotateTicks]="rotateXAxisTicks"
+          [maxTickLength]="maxXAxisTickLength"
+          [tickFormatting]="xAxisTickFormatting"
+          [ticks]="xAxisTicks"
+          [xAxisOffset]="dataLabelMaxHeight.negative"
           (dimensionsChanged)="updateXAxisHeight($event)"
         ></svg:g>
         <svg:g
@@ -55,78 +63,156 @@ import {
           [showGridLines]="showGridLines"
           [showLabel]="showYAxisLabel"
           [labelText]="yAxisLabel"
+          [trimTicks]="trimYAxisTicks"
+          [maxTickLength]="maxYAxisTickLength"
+          [tickFormatting]="yAxisTickFormatting"
+          [ticks]="yAxisTicks"
           (dimensionsChanged)="updateYAxisWidth($event)"
         ></svg:g>
-        <svg:g
-          ngx-charts-series-vertical
-          [xScale]="xScale"
-          [yScale]="yScale"
-          [colors]="colors"
-          [series]="results"
-          [dims]="dims"
-          [gradient]="gradient"
-          [animations]="animations"
-          [noBarWhenZero]="noBarWhenZero"
-          [tooltipDisabled]="true"
-        ></svg:g>
+        <svg:g *ngIf="!isSSR">
+          <svg:g
+            *ngFor="let group of results; let index = index; trackBy: trackBy"
+            [@animationState]="'active'"
+            [attr.transform]="groupTransform(group)"
+          >
+            <svg:g
+              ngx-charts-series-vertical
+              [type]="barChartType.Stacked"
+              [xScale]="xScale"
+              [yScale]="yScale"
+              [activeEntries]="activeEntries"
+              [colors]="colors"
+              [series]="group.series"
+              [dims]="dims"
+              [gradient]="gradient"
+              [tooltipDisabled]="tooltipDisabled"
+              [tooltipTemplate]="tooltipTemplate"
+              [showDataLabel]="showDataLabel"
+              [dataLabelFormatting]="dataLabelFormatting"
+              [seriesName]="group.name"
+              [animations]="animations"
+              [noBarWhenZero]="noBarWhenZero"
+              (select)="onClick($event, group)"
+              (activate)="onActivate($event, group)"
+              (deactivate)="onDeactivate($event, group)"
+              (dataLabelHeightChanged)="onDataLabelMaxHeightChanged($event, index)"
+            />
+          </svg:g>
+        </svg:g>
       </svg:g>
-
-      <svg:g [attr.transform]="transform" class="timeline">
-        <svg:filter [attr.id]="filterId">
-          <svg:feColorMatrix
-            in="SourceGraphic"
-            type="matrix"
-            values="0.3333 0.3333 0.3333 0 0 0.3333 0.3333 0.3333 0 0 0.3333 0.3333 0.3333 0 0 0 0 0 1 0"
+      <svg:g *ngIf="isSSR">
+        <svg:g
+          *ngFor="let group of results; let index = index; trackBy: trackBy"
+          [attr.transform]="groupTransform(group)"
+        >
+          <svg:g
+            ngx-charts-series-vertical
+            [type]="barChartType.Stacked"
+            [xScale]="xScale"
+            [yScale]="yScale"
+            [activeEntries]="activeEntries"
+            [colors]="colors"
+            [series]="group.series"
+            [dims]="dims"
+            [gradient]="gradient"
+            [tooltipDisabled]="tooltipDisabled"
+            [tooltipTemplate]="tooltipTemplate"
+            [showDataLabel]="showDataLabel"
+            [dataLabelFormatting]="dataLabelFormatting"
+            [seriesName]="group.name"
+            [animations]="animations"
+            [noBarWhenZero]="noBarWhenZero"
+            (select)="onClick($event, group)"
+            (activate)="onActivate($event, group)"
+            (deactivate)="onDeactivate($event, group)"
+            (dataLabelHeightChanged)="onDataLabelMaxHeightChanged($event, index)"
           />
-        </svg:filter>
-        <svg:rect x="0" [attr.width]="dims.width" y="0" [attr.height]="dims.height" class="brush-background" />
-        <svg:g class="brush"></svg:g>
+        </svg:g>
       </svg:g>
     </ngx-charts-chart>
   `,
-  //styleUrls: ['node_modules/@swimlane/common/base-chart.component.scss'],
-  //styleUrls: ['swimlane/ngx-charts/src/lib/common/base-chart.component.scss'],
   encapsulation: ViewEncapsulation.None,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  animations: [
+    trigger('animationState', [
+      transition(':leave', [
+        style({
+          opacity: 1,
+          transform: '*'
+        }),
+        animate(500, style({ opacity: 0, transform: 'scale(0)' }))
+      ])
+    ])
+  ]
 })
 export class NgxchartsCustomComponent extends BaseChartComponent {
-  @Input() autoScale = false;
-  @Input() schemeType: ScaleType = ScaleType.Ordinal;
-  @Input() valueDomain: number[];
+  @Input() legend: boolean = false;
+  @Input() legendTitle: string = 'Legend';
+  @Input() legendPosition: LegendPosition = LegendPosition.Right;
   @Input() xAxis;
   @Input() yAxis;
-  @Input() showXAxisLabel;
-  @Input() showYAxisLabel;
-  @Input() xAxisLabel;
-  @Input() yAxisLabel;
-  @Input() gradient;
+  @Input() showXAxisLabel: boolean;
+  @Input() showYAxisLabel: boolean;
+  @Input() xAxisLabel: string;
+  @Input() yAxisLabel: string;
+  @Input() tooltipDisabled: boolean = false;
+  @Input() gradient: boolean;
   @Input() showGridLines: boolean = true;
-  @Input() animations: boolean = true;
+  @Input() activeEntries: any[] = [];
+  @Input() schemeType: ScaleType;
+  @Input() trimXAxisTicks: boolean = true;
+  @Input() trimYAxisTicks: boolean = true;
+  @Input() rotateXAxisTicks: boolean = true;
+  @Input() maxXAxisTickLength: number = 16;
+  @Input() maxYAxisTickLength: number = 16;
+  @Input() xAxisTickFormatting: any;
+  @Input() yAxisTickFormatting: any;
+  @Input() xAxisTicks: any[];
+  @Input() yAxisTicks: any[];
+  @Input() barPadding: number = 8;
+  @Input() roundDomains: boolean = false;
+  @Input() yScaleMax: number;
+  @Input() showDataLabel: boolean = false;
+  @Input() dataLabelFormatting: any;
   @Input() noBarWhenZero: boolean = true;
 
-  @Output() onFilter = new EventEmitter();
+  @Output() activate: EventEmitter<any> = new EventEmitter();
+  @Output() deactivate: EventEmitter<any> = new EventEmitter();
+
+  @ContentChild('tooltipTemplate') tooltipTemplate: TemplateRef<any>;
 
   dims: ViewDimensions;
-  xSet: any;
-  xDomain: any;
-  yDomain: any;
-  seriesDomain: any;
-  yScale: any;
+  groupDomain: string[];
+  innerDomain: string[];
+  valueDomain: [number, number];
   xScale: any;
+  yScale: any;
+  transform: string;
+  tickFormatting: (label: string) => string;
+  colors: ColorHelper;
+  margin: number[] = [10, 20, 10, 20];
   xAxisHeight: number = 0;
   yAxisWidth: number = 0;
-  timeScale: any;
-  colors: ColorHelper;
-  scaleType: string;
-  transform: string;
-  margin: any[] = [10, 20, 10, 0];
-  initialized: boolean = false;
-  filterId: any;
-  filter: any;
-  brush: any;
+  legendOptions: LegendOptions;
+  dataLabelMaxHeight: any = { negative: 0, positive: 0 };
+  isSSR = false;
+
+  barChartType = BarChartType;
+
+  ngOnInit() {
+    if (isPlatformServer(this.platformId)) {
+      this.isSSR = true;
+    }
+  }
 
   update(): void {
     super.update();
+
+    if (!this.showDataLabel) {
+      this.dataLabelMaxHeight = { negative: 0, positive: 0 };
+    }
+    this.margin = [10 + this.dataLabelMaxHeight.positive, 20, 10 + this.dataLabelMaxHeight.negative, 20];
+
     this.dims = calculateViewDimensions({
       width: this.width,
       height: this.height,
@@ -137,177 +223,193 @@ export class NgxchartsCustomComponent extends BaseChartComponent {
       yAxisWidth: this.yAxisWidth,
       showXLabel: this.showXAxisLabel,
       showYLabel: this.showYAxisLabel,
-      showLegend: false,
-      legendType: this.schemeType
+      showLegend: this.legend,
+      legendType: this.schemeType,
+      legendPosition: this.legendPosition
     });
 
-    this.xDomain = this.getXDomain();
+    if (this.showDataLabel) {
+      this.dims.height -= this.dataLabelMaxHeight.negative;
+    }
 
-    this.yDomain = this.getYDomain();
-    this.timeScale = this.getTimeScale(this.xDomain, this.dims.width);
-    this.xScale = this.getXScale(this.xSet, this.dims.width);
-    this.yScale = this.getYScale(this.yDomain, this.dims.height);
+    this.formatDates();
+
+    this.groupDomain = this.getGroupDomain();
+    this.innerDomain = this.getInnerDomain();
+    this.valueDomain = this.getValueDomain();
+
+    this.xScale = this.getXScale();
+    this.yScale = this.getYScale();
 
     this.setColors();
-    this.transform = `translate(${this.dims.xOffset} , ${this.margin[0]})`;
-
-    if (this.brush) {
-      this.updateBrush();
-    }
-
-    this.filterId = 'filter' + id().toString();
-    this.filter = `url(#${this.filterId})`;
-
-    if (!this.initialized) {
-      this.addBrush();
-      this.initialized = true;
-    }
+    this.legendOptions = this.getLegendOptions();
+    console.log(this.legendOptions);
+    this.transform = `translate(${this.dims.xOffset} , ${this.margin[0] + this.dataLabelMaxHeight.negative})`;
   }
 
-  getXDomain(): any[] {
-    const values = [];
-
-    for (const d of this.results) {
-      if (!values.includes(d.name)) {
-        values.push(d.name);
+  getGroupDomain(): string[] {
+    const domain = [];
+    for (const group of this.results) {
+      if (!domain.includes(group.label)) {
+        domain.push(group.label);
       }
     }
-
-    this.scaleType = this.getScaleType(values);
-    let domain = [];
-
-    const min = new Date(Math.min(...values));
-    min.setHours(0);
-    min.setMinutes(0);
-    min.setSeconds(0);
-
-    const max = new Date(Math.max(...values));
-    max.setHours(23);
-    max.setMinutes(59);
-    max.setSeconds(59);
-
-    domain = [min.getTime(), max.getTime()];
-
-    this.xSet = values;
     return domain;
   }
 
-  getYDomain(): any[] {
-    if (this.valueDomain) {
-      return this.valueDomain;
-    }
-
+  getInnerDomain(): string[] {
     const domain = [];
-
-    for (const d of this.results) {
-      if (domain.indexOf(d.value) < 0) {
-        domain.push(d.value);
-      }
-      if (d.min !== undefined) {
-        if (domain.indexOf(d.min) < 0) {
-          domain.push(d.min);
-        }
-      }
-      if (d.max !== undefined) {
-        if (domain.indexOf(d.max) < 0) {
-          domain.push(d.max);
+    for (const group of this.results) {
+      for (const d of group.series) {
+        if (!domain.includes(d.label)) {
+          domain.push(d.label);
         }
       }
     }
+    return domain;
+  }
 
-    let min = Math.min(...domain);
-    const max = Math.max(...domain);
-    if (!this.autoScale) {
-      min = Math.min(0, min);
+  getValueDomain(): [number, number] {
+    const domain = [];
+    let smallest = 0;
+    let biggest = 0;
+    for (const group of this.results) {
+      let smallestSum = 0;
+      let biggestSum = 0;
+      for (const d of group.series) {
+        if (d.value < 0) {
+          smallestSum += d.value;
+        } else {
+          biggestSum += d.value;
+        }
+        smallest = d.value < smallest ? d.value : smallest;
+        biggest = d.value > biggest ? d.value : biggest;
+      }
+      domain.push(smallestSum);
+      domain.push(biggestSum);
     }
+    domain.push(smallest);
+    domain.push(biggest);
 
+    const min = Math.min(0, ...domain);
+    const max = this.yScaleMax ? Math.max(this.yScaleMax, ...domain) : Math.max(...domain);
     return [min, max];
   }
 
-  getXScale(domain, width): any {
-    return scaleBand().range([0, width]).paddingInner(0.1).domain(domain);
+  getXScale(): any {
+    const spacing = this.groupDomain.length / (this.dims.width / this.barPadding + 1);
+    return scaleBand().rangeRound([0, this.dims.width]).paddingInner(spacing).domain(this.groupDomain);
   }
 
-  getTimeScale(domain, width): any {
-    return scaleTime().range([0, width]).domain(domain);
+  getYScale(): any {
+    const scale = scaleLinear().range([this.dims.height, 0]).domain(this.valueDomain);
+    //console.log(this.dims.height);
+    return this.roundDomains ? scale.nice() : scale;
   }
 
-  getYScale(domain, height): any {
-    const scale = scaleLinear().range([height, 0]).domain(domain);
-
-    return scale;
+  onDataLabelMaxHeightChanged(event, groupIndex: number) {
+    if (event.size.negative) {
+      this.dataLabelMaxHeight.negative = Math.max(this.dataLabelMaxHeight.negative, event.size.height);
+    } else {
+      this.dataLabelMaxHeight.positive = Math.max(this.dataLabelMaxHeight.positive, event.size.height);
+    }
+    if (groupIndex === this.results.length - 1) {
+      setTimeout(() => this.update());
+    }
   }
 
-  getScaleType(values): ScaleType {
-    return ScaleType.Time;
+  groupTransform(group: Series): string {
+    return `translate(${this.xScale(group.name) || 0}, 0)`;
   }
 
-  trackBy(index, item): string {
-    return `${item.name}`;
+  onClick(data, group?: Series) {
+    if (group) {
+      data.series = group.name;
+    }
+
+    this.select.emit(data);
   }
+
+  trackBy: TrackByFunction<Series> = (index: number, item: Series) => {
+    return item.name;
+  };
 
   setColors(): void {
     let domain;
     if (this.schemeType === ScaleType.Ordinal) {
-      domain = this.xSet;
+      domain = this.innerDomain;
     } else {
-      domain = this.yDomain;
+      domain = this.valueDomain;
     }
 
     this.colors = new ColorHelper(this.scheme, this.schemeType, domain, this.customColors);
   }
 
-  updateYAxisWidth({ width }): void {
+  getLegendOptions(): LegendOptions {
+    const opts = {
+      scaleType: this.schemeType as any,
+      colors: undefined,
+      domain: [],
+      title: undefined,
+      position: this.legendPosition
+    };
+    if (opts.scaleType === ScaleType.Ordinal) {
+      opts.domain = this.innerDomain;
+      opts.colors = this.colors;
+      opts.title = this.legendTitle;
+    } else {
+      opts.domain = this.valueDomain;
+      opts.colors = this.colors.scale;
+    }
+
+    return opts;
+  }
+
+  updateYAxisWidth({ width }: { width: number }): void {
     this.yAxisWidth = width;
     this.update();
   }
 
-  updateXAxisHeight({ height }): void {
+  updateXAxisHeight({ height }: { height: number }): void {
     this.xAxisHeight = height;
     this.update();
   }
 
-  addBrush(): void {
-    if (this.brush) return;
+  onActivate(event, group, fromLegend: boolean = false): void {
+    const item = Object.assign({}, event);
+    if (group) {
+      item.series = group.name;
+    }
 
-    const height = this.height;
-    const width = this.width;
-
-    this.brush = brushX()
-      .extent([
-        [0, 0],
-        [width, height]
-      ])
-      .on('brush end', ({ selection }) => {
-        const newSelection = selection || this.xScale.range();
-        const newDomain = newSelection.map(this.timeScale.invert);
-
-        this.onFilter.emit(newDomain);
-        this.cd.markForCheck();
+    const items = this.results
+      .map(g => g.series)
+      .flat()
+      .filter(i => {
+        if (fromLegend) {
+          return i.label === item.name;
+        } else {
+          return i.name === item.name && i.series === item.series;
+        }
       });
 
-    select(this.chartElement.nativeElement).select('.brush').call(this.brush);
+    this.activeEntries = [...items];
+    this.activate.emit({ value: item, entries: this.activeEntries });
   }
 
-  updateBrush(): void {
-    if (!this.brush) return;
+  onDeactivate(event, group: Series, fromLegend: boolean = false) {
+    const item = Object.assign({}, event);
+    if (group) {
+      item.series = group.name;
+    }
 
-    const height = this.dims.height;
-    const width = this.dims.width;
+    this.activeEntries = this.activeEntries.filter(i => {
+      if (fromLegend) {
+        return i.label !== item.name;
+      } else {
+        return !(i.name === item.name && i.series === item.series);
+      }
+    });
 
-    this.brush.extent([
-      [0, 0],
-      [width, height]
-    ]);
-    select(this.chartElement.nativeElement).select('.brush').call(this.brush);
-
-    // clear hardcoded properties so they can be defined by CSS
-    select(this.chartElement.nativeElement)
-      .select('.selection')
-      .attr('fill', undefined)
-      .attr('stroke', undefined)
-      .attr('fill-opacity', undefined);
-
-    this.cd.markForCheck();
+    this.deactivate.emit({ value: item, entries: this.activeEntries });
   }
 }

@@ -19,7 +19,7 @@
     [yAxisLabel]="'Products'"
     [timeline]="true">
 </ngx-charts-line-chart>
-
+<!--
 <ngx-charts-bar-vertical-stacked
   [view]="[700,370]"
   [results]="barChart"
@@ -33,4 +33,19 @@
   [yAxisLabel]="'Population'"
   [animations]="true">
 </ngx-charts-bar-vertical-stacked>
+-->
+<ngx-charts-timeline-filter-bar-chart
+        [view]="[700,380]"
+        [results]="barChart"
+        [animations]="true"
+        [gradient]="false"
+        [xAxis]="true"
+        [yAxis]="true"
+        [showXAxisLabel]="true"
+        [showYAxisLabel]="true"
+        [xAxisLabel]="'xAxis'"
+        [yAxisLabel]="'Executions'"
+        [showGridLines]="false"
+      >
+</ngx-charts-timeline-filter-bar-chart>
 

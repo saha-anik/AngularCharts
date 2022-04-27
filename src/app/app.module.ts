@@ -17,8 +17,7 @@ import { NgxchartsCustomComponent } from './ngxcharts-custom/ngxcharts-custom.co
 
 const routes: Routes = [
   { path: "ngxchart", component: NgxchartsComponent},
-  { path: "ng2chart", component: Ng2chartsComponent},
-  { path: "ngxcustomchart", component: NgxchartsCustomComponent}
+  { path: "ng2chart", component: Ng2chartsComponent}
 ]
 
 @NgModule({
