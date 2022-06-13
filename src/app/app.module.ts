@@ -14,10 +14,20 @@ import { NgChartsModule }from 'ng2-charts';
 import { NgxchartsComponent } from './ngxcharts/ngxcharts.component';
 import { Ng2chartsComponent } from './ng2charts/ng2charts.component';
 import { NgxchartsCustomComponent } from './ngxcharts-custom/ngxcharts-custom.component';
+import { Ng2chartTimeofdayComponent } from './ng2chart-timeofday/ng2chart-timeofday.component';
+
+import { registry } from 'chart.js';
+import { TimeOfDayController } from './shared/controllers';
+import { Boxes } from './shared/elements';
+
+
+registry.addControllers(TimeOfDayController);
+registry.addElements(Boxes);
 
 const routes: Routes = [
   { path: "ngxchart", component: NgxchartsComponent},
-  { path: "ng2chart", component: Ng2chartsComponent}
+  { path: "ng2chart", component: Ng2chartsComponent},
+  { path: "ng2chartTimeOfDay", component: Ng2chartTimeofdayComponent},
 ]
 
 @NgModule({
@@ -25,7 +35,8 @@ const routes: Routes = [
     AppComponent,
     NgxchartsComponent,
     Ng2chartsComponent,
-    NgxchartsCustomComponent
+    NgxchartsCustomComponent,
+    Ng2chartTimeofdayComponent
   ],
   imports: [
     BrowserModule,
